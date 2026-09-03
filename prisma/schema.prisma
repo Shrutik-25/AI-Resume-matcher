@@ -1,0 +1,28 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Resume {
+  id        String           @id @default(uuid())
+  fileName  String
+  rawText   String
+  createdAt DateTime         @default(now())
+  analyses  AnalysisResult[]
+}
+
+model AnalysisResult {
+  id             String   @id @default(uuid())
+  resumeId       String
+  resume         Resume   @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  jobTitle       String
+  jobDescription String
+  matchScore     Int
+  matchingSkills String[]
+  missingSkills  String[]
+  suggestions    Json
+  createdAt      DateTime @default(now())
+}
