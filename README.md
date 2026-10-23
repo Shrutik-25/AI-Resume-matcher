@@ -1,114 +1,54 @@
 # 🚀 AI Resume Matcher & ATS Optimizer
 
-An AI-powered, full-stack ATS resume analysis platform built with **Next.js 16**, **TypeScript**, **Tailwind CSS**, and **Google Gemini AI**. The application processes raw PDF resumes against job descriptions to provide real-time ATS scoring, skill gap detection, and actionable optimization feedback.
+An AI-powered full-stack ATS resume analysis platform built with **Next.js (App Router)**, **TypeScript**, **Tailwind CSS**, and a **Python FastAPI** backend microservice powered by **Google Gemini AI**. The application extracts native PDF content, categorizes candidate qualifications against job requirements, and computes a deterministic weighted ATS match score with actionable optimization feedback.
 
 ---
 
 ## 🌟 Key Features
 
-- **📄 Multimodal Drag-and-Drop PDF Upload**: Interactive file upload zone with client-side mime-type validation and drag-and-drop feedback.
-- **📊 Real-Time ATS Scoring**: Evaluates candidate resumes against job descriptions to compute a weighted percentage match score (0–100%).
-- **🔍 Skill Gap Analysis**: Categorizes skills into visual chips showing **Matching Qualifications** vs. **Missing Qualifications**.
-- **💡 Actionable Feedback**: Provides personalized recommendations to optimize resume keywords, structure, and formatting.
-- **⚙️ Automated Model Fallback**: Built-in resilience engine that handles model rate limits and API updates by automatically retrying failed requests across Gemini model aliases (`gemini-1.5-flash-latest` → `gemini-2.0-flash`).
-- **🗄️ Asynchronous Persistence**: Records evaluation runs asynchronously using **Prisma ORM** and **Neon PostgreSQL** without slowing down client UI rendering.
+- **📄 Native PDF Text Extraction**: Reads and parses PDF byte streams in memory using `pypdf` without saving sensitive resume files to disk.
+- **🤖 AI Structured Skill Extraction**: Leverages the Google Gemini API (`google-genai`) to parse candidate qualifications, required job skills, and optional skills into structured JSON.
+- **🧮 Deterministic Weighted Scoring Engine**: Features a custom algorithm (`matcher.py`) assigning higher weight ($w=2.0$) to required skills and ($w=1.0$) to optional skills to calculate precise match percentages.
+- **🔄 Resilient Exponential Backoff**: Built-in retry loops handle third-party API throttling and high-demand `503` server spikes gracefully.
+- **🔍 Visual Skill Gap Analysis**: Categorizes extracted data into visual chips displaying **Matching Qualifications** vs. **Missing Qualifications**.
+- **💡 Actionable Recommendations**: Generates tailored, high-impact suggestions to optimize resume keywords and formatting for ATS scanners.
+- **🗄️ Asynchronous Persistence**: Records evaluation runs using **Prisma ORM** and **Neon PostgreSQL** without blocking client UI rendering.
 
 ---
 
 ## 🛠️ Tech Stack
 
-| Component | Technology |
+| Layer | Technology |
 | :--- | :--- |
-| **Framework** | Next.js 16 (App Router) |
-| **Language** | TypeScript |
-| **Styling** | Tailwind CSS |
-| **Generative AI** | Google Gemini Multimodal API (`@google/genai`) |
-| **Database** | Neon PostgreSQL (Serverless) |
-| **ORM** | Prisma ORM |
+| **Frontend UI** | Next.js (App Router), React, TypeScript, Tailwind CSS |
+| **Backend Microservice** | Python 3, FastAPI, Uvicorn |
+| **PDF Processing** | `pypdf` |
+| **Generative AI** | Google Gemini API (`google-genai`, model: `gemini-3.8-flash`) |
+| **Algorithm Engine** | Custom Python Skill Matcher (`matcher.py`) |
+| **Database & ORM** | Neon PostgreSQL (Serverless), Prisma ORM |
 
 ---
 
 ## 🏗️ System Architecture
 
 ```text
-[ Client Dashboard ]
-       │
-       │ (1) POST FormData (PDF + Job Description)
-       ▼
-[ Next.js API Route: /api/analyze ]
-       │
-       ├───► (2) Convert PDF Buffer to Base64
-       │
-       ├───► (3) Gemini AI Inference Engine
-       │         ├── Primary: gemini-1.5-flash-latest
-       │         └── Fallback: gemini-2.0-flash
-       │         └── Structured JSON Output
-       │
-       ├───► (4) Prisma ORM → Neon PostgreSQL (Async Persistence)
-       │
-       ▼
-[ Client UI ] (Renders Match Dashboard & Recommendations)
-```
-
----
-
-## 🚀 Getting Started Locally
-
-### Prerequisites
-
-Ensure you have the following installed on your machine:
-- **Node.js**: `v18.x` or higher
-- **npm** or **yarn**
-- A **Google Gemini API Key** ([Get your key here](https://aistudio.google.com/))
-- A **Neon PostgreSQL Connection String** ([Get your database here](https://neon.tech/))
-
----
-
-### Installation & Setup
-
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/Shrutik-25/ai-resume-matcher.git
-   cd ai-resume-matcher
-   ```
-
-2. **Install dependencies:**
-   ```bash
-   npm install
-   ```
-
-3. **Configure Environment Variables:**
-   Create a `.env` file in the root directory:
-   ```env
-   # Database Connection
-   DATABASE_URL="postgresql://user:password@ep-example.neon.tech/neondb?sslmode=require"
-
-   # Google Gemini API Key
-   GEMINI_API_KEY="your_gemini_api_key_here"
-   ```
-
-4. **Run Prisma Migrations:**
-   ```bash
-   npx prisma db push
-   ```
-
-5. **Start the Development Server:**
-   ```bash
-   npm run dev
-   ```
-
-6. Open your browser and navigate to `http://localhost:3000`.
-
----
-
-## 🔒 Security & Best Practices
-
-- **Environment Secrets**: API keys and database credentials are kept strictly in `.env`, which is ignored by `.gitignore`.
-- **In-Memory Streaming**: PDF file buffers are processed in memory as Base64 data without saving sensitive documents to local disk storage.
-- **Type Safety**: Fully typed end-to-end using TypeScript interfaces and strict JSON schemas.
-
----
-
-## 📄 License
-
-This project is open-source and available under the [MIT License](LICENSE).
+[ Client Dashboard (port 3000) ]
+        │
+        │ (1) POST FormData (PDF Resume + Job Description)
+        ▼
+[ Next.js Proxy Route: /api/analyze ]
+        │
+        │ (2) Proxy Payload HTTP Request
+        ▼
+[ Python FastAPI Microservice (port 8000) ]
+        │
+        ├───► (3) Extract Text via pypdf
+        │
+        ├───► (4) Google Gemini API (gemini-3.8-flash)
+        │         └── Structured JSON Skill & Gap Extraction
+        │
+        ├───► (5) Deterministic Matcher (matcher.py)
+        │         └── Calculate Weighted Percentage Score
+        │
+        ▼
+[ Next.js Client Dashboard ] (Renders Match Score Badge, Skill Pills & Feedback)
