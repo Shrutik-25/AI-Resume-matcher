@@ -227,7 +227,7 @@ Note: `python-dotenv` must also be added to `backend/requirements.txt` because t
 Create a `.env` file inside the `backend` directory:
 
 ```env
-GEMINI_API_KEY=AQ.Ab8RN6KelsDHTAbQZvKIBFNhW7JlAffnwT8nG033ivPagDWb2w
+GEMINI_API_KEY=YOUR_GEMINI_APL_KEY
 ```
 
 The API key can be obtained from Google AI Studio.
